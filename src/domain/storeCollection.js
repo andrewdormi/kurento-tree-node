@@ -9,4 +9,4 @@ class StoreCollection {
     }
 }
 
-module.exports = new StoreCollection();
+module.exports = StoreCollection;

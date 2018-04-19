@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.1.0/socket.io.js"></script>
+    <title>Title</title>
+</head>
+<body>
+testpage
+<script>
+    let socket;
+
+    function connect() {
+        return new Promise(resolve => {
+            socket = io.connect('ws://localhost:8080', {transports: ['websocket']});
+            socket.on('connect', () => {
+                console.log('connected to tree');
+                resolve();
+            });
+        });
+    }
+
+    function emitPromise(message, data) {
+        return new Promise((resolve, reject) => {
+            socket.emit(message, data, (err, data) => {
+                console.log(err, data);
+                if (err) {
+                    return reject(err);
+                }
+                return resolve(data);
+            });
+        });
+    }
+
+    function clearServer() {
+        return emitPromise('server:clear');
+    }
+
+    function registerKms(kmsUrls) {
+        const promises = kmsUrls.map(u => emitPromise('kms:register', {url: u}));
+        return Promise.all(promises);
+    }
+</script>
+</body>
+</html>
