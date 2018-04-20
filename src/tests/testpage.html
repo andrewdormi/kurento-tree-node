@@ -10,7 +10,6 @@ testpage
 <video></video>
 <script>
     let socket;
-    let connection = {candidatesQueue: [], remoteCandidateQueue: []};
 
     function connect() {
         return new Promise(resolve => {
@@ -44,6 +43,7 @@ testpage
     }
 
     function publish() {
+        let connection = {candidatesQueue: [], remoteCandidateQueue: []};
         return new Promise((resolve, reject) => {
             navigator.mediaDevices.getUserMedia({audio: true, video: true}).then(stream => {
                 connection.pc = new RTCPeerConnection({iceServers: [{urls: ['stun:stun.l.google.com:19302']}]});
@@ -52,13 +52,15 @@ testpage
                     connection.pc.setLocalDescription(offer);
                     emitPromise('media:publish', {offer: offer.sdp}).then(({callId, answer, elementId}) => {
                         connection.elementId = elementId;
+                        connection.callId = callId;
                         connection.candidatesQueue.forEach(c => {
                             emitPromise('media:candidate:add', {elementId: connection.elementId, candidate: c});
                         });
                         const ans = new RTCSessionDescription({type: 'answer', sdp: answer});
-                        connection.pc.setRemoteDescription(ans);
-                        connection.remoteCandidateQueue.forEach(c => {
-                            connection.pc.addIceCandidate(c);
+                        connection.pc.setRemoteDescription(ans, () => {
+                            connection.remoteCandidateQueue.forEach(c => {
+                                connection.pc.addIceCandidate(c);
+                            });
                         });
                     }).catch(reject);
                 }).catch(reject);
@@ -86,11 +88,68 @@ testpage
                     const state = connection.pc.iceConnectionState;
                     console.log(`Ice changed: ${state}`);
                     if (state === 'completed') {
-                        resolve();
+                        resolve(connection.callId);
                     }
                 };
 
             }).catch(reject);
+        });
+    }
+
+    function view(callId) {
+        let connection = {candidatesQueue: [], remoteCandidateQueue: []};
+        return new Promise((resolve, reject) => {
+            connection.pc = new RTCPeerConnection({iceServers: [{urls: ['stun:stun.l.google.com:19302']}]});
+            connection.pc.createOffer({
+                offerToReceiveAudio: true,
+                offerToReceiveVideo: true
+            }).then(offer => {
+                connection.pc.setLocalDescription(offer);
+                emitPromise('media:view', {offer: offer.sdp, callId}).then(({callId, answer, elementId}) => {
+                    connection.elementId = elementId;
+                    connection.callId = callId;
+                    connection.candidatesQueue.forEach(c => {
+                        emitPromise('media:candidate:add', {elementId: connection.elementId, candidate: c});
+                    });
+                    const ans = new RTCSessionDescription({type: 'answer', sdp: answer});
+                    connection.pc.setRemoteDescription(ans, () => {
+                        connection.remoteCandidateQueue.forEach(c => {
+                            connection.pc.addIceCandidate(c);
+                        });
+
+                        const stream = connection.pc.getRemoteStreams()[0];
+                        document.getElementsByTagName('video')[0].srcObject = stream;
+                        document.getElementsByTagName('video')[0].play();
+                    });
+                }).catch(reject);
+            }).catch(reject);
+
+            socket.on('media:candidate.add', data => {
+                if (!connection.pc.remoteDescription.type) {
+                    connection.remoteCandidateQueue.push(new RTCIceCandidate(data.candidate))
+                } else {
+                    connection.pc.addIceCandidate(new RTCIceCandidate(data.candidate));
+                }
+            });
+
+            connection.pc.onicecandidate = e => {
+                if (!e.candidate) {
+                    return false;
+                }
+                if (connection.elementId) {
+                    emitPromise('media:candidate:add', {elementId: connection.elementId, candidate: e.candidate});
+                } else {
+                    connection.candidatesQueue.push(e.candidate);
+                }
+            };
+
+            connection.pc.oniceconnectionstatechange = () => {
+                const state = connection.pc.iceConnectionState;
+                console.log(`Ice changed: ${state}`);
+                if (state === 'completed') {
+                    resolve(connection.callId);
+                }
+            };
         });
     }
 </script>

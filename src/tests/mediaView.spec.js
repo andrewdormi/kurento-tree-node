@@ -1,7 +1,7 @@
-const {registerDefaultKms, openTestPage, publishStream} = require('./common');
+const {registerDefaultKms, openTestPage, publishStream, viewStream} = require('./common');
 
 const mock = {};
-describe('media:publish', () => {
+describe('media:view', () => {
     beforeEach(async (done) => {
         const {browser, page} = await openTestPage();
         mock.browser = browser;
@@ -16,8 +16,9 @@ describe('media:publish', () => {
         done();
     });
 
-    it('Can publish stream', async (done) => {
-        await publishStream(mock.page);
+    it('Can view published stream', async (done) => {
+        const callId = await publishStream(mock.page);
+        await viewStream(mock.page, callId);
         done();
     });
 });

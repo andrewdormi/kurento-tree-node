@@ -3,7 +3,6 @@ const path = require('path');
 
 async function openTestPage() {
     const browser = await puppeteer.launch({
-        headless: false,
         args: ['--use-fake-ui-for-media-stream']
     });
     const page = await browser.newPage();
@@ -31,8 +30,15 @@ async function publishStream(page) {
     });
 }
 
+async function viewStream(page, callId) {
+    return await page.evaluate(async (callId) => {
+        return await view(callId);
+    }, callId);
+}
+
 module.exports = {
     registerDefaultKms,
     openTestPage,
-    publishStream
+    publishStream,
+    viewStream
 };
