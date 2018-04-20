@@ -8,6 +8,7 @@ class MediaController {
         socket.on('media:view', this.view.bind(this, socket));
         socket.on('media:candidate:add', this.addCandidate.bind(this, socket));
         socket.on('media:remove', this.removeMedia.bind(this, socket));
+        socket.on('server:clear', this.clearTreeWatchers.bind(this, socket));
     }
 
     async publish(socket, data, cb) {
@@ -75,6 +76,10 @@ class MediaController {
         } catch (err) {
             if (cb) cb(err);
         }
+    }
+
+    async clearTreeWatchers(socket, data, cb) {
+        await this.mediaUsecases.clearTreeWatchers();
     }
 }
 

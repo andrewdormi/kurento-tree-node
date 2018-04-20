@@ -173,6 +173,14 @@ class MediaUsecases {
             kurentoClientCollection: this.kurentoClientCollection
         });
     }
+
+    async clearTreeWatchers() {
+        const callIds = Object.keys(this.treeWatchers);
+        for (let i = 0; i < callIds.length; i++) {
+            await this.treeWatchers[callIds[i]].stop();
+            delete this.treeWatchers[callIds[i]];
+        }
+    }
 }
 
 module.exports = MediaUsecases;
