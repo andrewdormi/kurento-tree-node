@@ -9,6 +9,7 @@
   "author": "Dormi",
   "license": "ISC",
   "dependencies": {
+    "amqplib": "^0.5.2",
     "express": "4.16.2",
     "kurento-client": "6.6.0",
     "mongoose": "5.0.9",

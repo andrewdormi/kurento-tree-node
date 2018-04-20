@@ -7,8 +7,8 @@ class TreeStore {
         return tree;
     }
 
-    async findByCallId(callId) {
-        return await TreeModel.findOne({callId});
+    async findReadyByCallId(callId) {
+        return await TreeModel.findOne({callId, state: 'ready'});
     }
 
     async findById(id) {
@@ -19,8 +19,16 @@ class TreeStore {
         return await TreeModel.findOneAndUpdate({_id: tree._id}, {$addToSet: {elements: treeElement}}, {new: true});
     }
 
-    async findReadyTreeByCallIdAndLock(callId) {
-        return await TreeModel.findOneAndUpdate({callId, state: 'ready'}, {$set: {state: 'locked'}}, {new: true});
+    async findReadyTreeByCallIdAndLockForDeleting(callId) {
+        return await TreeModel.findOneAndUpdate(
+            {callId, state: 'ready'},
+            {$set: {state: 'deleting-lock'}},
+            {new: true}
+        );
+    }
+
+    async removeByCallId(callId) {
+        await TreeModel.remove({callId});
     }
 
     async clear() {

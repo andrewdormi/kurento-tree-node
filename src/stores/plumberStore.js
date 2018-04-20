@@ -11,6 +11,10 @@ class PlumberStore {
         return await PlumberModel.findOne({_id: id});
     }
 
+    async removeByCallId(callId) {
+        await PlumberModel.remove({callId});
+    }
+
     async clear() {
         await PlumberModel.remove({});
     }

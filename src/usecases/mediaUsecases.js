@@ -4,10 +4,13 @@ const KurentoElement = require('../domain/kurentoElement');
 const TreeWatcher = require('../domain/treeWatcher');
 
 class MediaUsecases {
-    constructor(storeCollection, kurentoClientCollection) {
+    constructor(storeCollection, kurentoClientCollection, amqpController) {
         this.storeCollection = storeCollection;
         this.kurentoClientCollection = kurentoClientCollection;
+        this.amqpController = amqpController;
         this.treeWatchers = {};
+
+        this.amqpController.on('media:remove', this.removePublishEndpoint.bind(this));
     }
 
     async publish(offer, onIceCandidate) {
@@ -52,7 +55,7 @@ class MediaUsecases {
 
     async view(offer, callId, onIceCandidate) {
         const {treeStore, treeElementStore, plumberStore} = this.storeCollection;
-        const tree = await treeStore.findByCallId(callId);
+        const tree = await treeStore.findReadyByCallId(callId);
         if (!tree) {
             throw {message: 'Cant find chat with call id', code: 404};
         }
@@ -100,7 +103,7 @@ class MediaUsecases {
             throw {message: 'Cant find removing element', code: 404};
         }
 
-        const tree = await treeStore.findByCallId(removingElement.callId);
+        const tree = await treeStore.findReadyByCallId(removingElement.callId);
         if (!tree) {
             throw {message: 'Cant find chat with call id', code: 404};
         }
@@ -113,7 +116,39 @@ class MediaUsecases {
 
             await treeElementStore.removeWebrtc(treeElement, removingElement.model._id);
             await removingElement.remove();
+        } else {
+            this.amqpController.publish({
+                type: 'media:remove',
+                data: {elementId, callId: tree.callId}
+            });
         }
+    }
+
+    async removePublishEndpoint({elementId, callId}) {
+        const {treeStore, webrtcStore, treeElementStore, plumberStore} = this.storeCollection;
+        if (!this.treeWatchers[callId]) {
+            return;
+        }
+
+        const tree = await treeStore.findReadyTreeByCallIdAndLockForDeleting(callId);
+        await this.treeWatchers[callId].stop();
+        delete this.treeWatchers[callId];
+
+        const allWebrtcForCallId = await webrtcStore.findByCallId(callId);
+        for (let i = 0; i < allWebrtcForCallId.length; i++) {
+            const webrtcElement = new KurentoElement({
+                storeCollection: this.storeCollection,
+                kurentoClientCollection: this.kurentoClientCollection
+            });
+            await webrtcElement.initWithModelId(allWebrtcForCallId[i]._id);
+
+            await webrtcElement.remove();
+        }
+
+        await treeStore.removeByCallId(callId);
+        await treeElementStore.removeByCallId(callId);
+        await plumberStore.removeByCallId(callId);
+        await webrtcStore.removeByCallId(callId);
     }
 
     async addCandidate(elementId, candidate) {

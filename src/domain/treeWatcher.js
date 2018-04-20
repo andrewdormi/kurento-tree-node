@@ -11,15 +11,23 @@ class TreeWatcher {
 
     async start() {
         this.state = treeWatcherStates.working;
+        this.isTickProcessing = false;
         await this.tick();
     }
 
     async stop() {
-        clearTimeout(this.watcherTimeout);
-        this.state = treeWatcherStates.stopped;
+        return new Promise(resolve=> {
+            clearTimeout(this.watcherTimeout);
+            this.stoppingCallback = resolve;
+            this.state = treeWatcherStates.stopped;
+            if (!this.isTickProcessing) {
+                this.stoppingCallback();
+            }
+        });
     }
 
     async tick() {
+        this.isTickProcessing = true;
         const {treeStore} = this.storeCollection;
         const tree = await treeStore.findById(this.tree._id);
 
@@ -32,7 +40,10 @@ class TreeWatcher {
 
         if (this.state !== treeWatcherStates.stopped) {
             this.watcherTimeout = setTimeout(this.tick.bind(this), config.treeWatcher.interval);
+        } else {
+            this.stoppingCallback();
         }
+        this.isTickProcessing = false;
     }
 
     async createDesiredInitialTreeElements(number) {
@@ -136,7 +147,7 @@ class TreeWatcher {
             streamType: 'publish'
         });
         await kmsStore.addWebrtc(kms, webrtc);
-        return {element, mongoElement: webrtc}
+        return {element, mongoElement: webrtc};
     }
 
     async getTreeElementKmsAndPipeline(treeElement) {

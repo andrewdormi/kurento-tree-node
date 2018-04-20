@@ -1,6 +1,7 @@
 const ServerController = require('./serverController');
 const KmsController = require('./kmsController');
 const MediaController = require('./mediaController');
+const AmqpController = require('./amqpController');
 
 const StoreCollection = require('../domain/storeCollection');
 
@@ -19,6 +20,9 @@ const KurentoClientCollection = require('../domain/kurentoClientCollection');
 
 class IOController {
     constructor(socketServer) {
+        const amqpController = new AmqpController();
+        amqpController.connect();
+
         const kurentoClientCollection = new KurentoClientCollection();
 
         const storeCollection = new StoreCollection({
@@ -32,7 +36,7 @@ class IOController {
 
         const serverUsecases = new ServerUsecases(storeCollection);
         const kurentoUsecases = new KurentoUsecases(storeCollection, kurentoClientCollection);
-        const mediaUsecases = new MediaUsecases(storeCollection, kurentoClientCollection);
+        const mediaUsecases = new MediaUsecases(storeCollection, kurentoClientCollection, amqpController);
 
         const serverController = new ServerController({serverUsecases});
         const kmsController = new KmsController({kurentoUsecases});

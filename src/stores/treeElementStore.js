@@ -47,6 +47,10 @@ class TreeElementStore {
         return await treeElement.update({$set: {state}});
     }
 
+    async removeByCallId(callId) {
+        await TreeElementModel.remove({callId});
+    }
+
     async clear() {
         await TreeElementModel.remove({});
     }

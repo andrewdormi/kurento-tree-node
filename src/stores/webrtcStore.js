@@ -11,8 +11,16 @@ class WebrtcStore {
         return await WebrtcModel.findOne({_id: id});
     }
 
+    async findByCallId(callId) {
+        return await WebrtcModel.find({callId});
+    }
+
     async findByElementId(elementId) {
         return await WebrtcModel.findOne({elementId});
+    }
+
+    async removeByCallId(callId) {
+        await WebrtcModel.remove({callId});
     }
 
     async clear() {
