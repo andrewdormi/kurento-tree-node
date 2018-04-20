@@ -39,6 +39,10 @@ class KmsStore {
         return await KmsModel.findOne({webrtc});
     }
 
+    async findPipelineKms(pipeline) {
+        return await KmsModel.findOne({pipeline});
+    }
+
     async getLessLoadedFromList(ids) {
         return await this.queryLessLoadedKms({_id: {$in: ids}, status: 'ready'});
     }

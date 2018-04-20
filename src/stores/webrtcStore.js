@@ -23,6 +23,10 @@ class WebrtcStore {
         await WebrtcModel.remove({callId});
     }
 
+    async findAll() {
+        return WebrtcModel.find({});
+    }
+
     async clear() {
         await WebrtcModel.remove({});
     }

@@ -7,6 +7,10 @@ class PipelineStore {
         return pipeline;
     }
 
+    async findAll() {
+        return PipelineModel.find({});
+    }
+
     async clear() {
         await PipelineModel.remove({});
     }

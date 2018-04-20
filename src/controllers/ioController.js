@@ -34,7 +34,7 @@ class IOController {
             treeElementStore: new TreeElementStore()
         });
 
-        const serverUsecases = new ServerUsecases(storeCollection);
+        const serverUsecases = new ServerUsecases(storeCollection, kurentoClientCollection);
         const kurentoUsecases = new KurentoUsecases(storeCollection, kurentoClientCollection);
         const mediaUsecases = new MediaUsecases(storeCollection, kurentoClientCollection, amqpController);
 

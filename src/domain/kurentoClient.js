@@ -21,7 +21,12 @@ class KurentoClient {
     }
 
     async retrive(elementId) {
-        const elementWrapped = await wrap(this.connection.getMediaobjectById(elementId));
+        let elementWrapped = null;
+        try {
+            elementWrapped = await wrap(this.connection.getMediaobjectById(elementId));
+        } catch (err) {
+            return {element: null};
+        }
         return {element: elementWrapped.get()};
     };
 
