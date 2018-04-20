@@ -9,7 +9,7 @@
   "author": "Dormi",
   "license": "ISC",
   "dependencies": {
-    "amqplib": "^0.5.2",
+    "amqplib": "0.5.2",
     "express": "4.16.2",
     "kurento-client": "6.6.0",
     "mongoose": "5.0.9",
@@ -18,8 +18,8 @@
     "winston": "2.4.0"
   },
   "devDependencies": {
-    "jest-cli": "^22.4.2",
-    "puppeteer": "^1.3.0"
+    "jest-cli": "22.4.2",
+    "puppeteer": "1.3.0"
   },
   "jest": {
     "setupTestFrameworkScriptFile": "./src/tests/setup.js"
