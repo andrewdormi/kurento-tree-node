@@ -39,10 +39,26 @@ class IOController {
         const mediaController = new MediaController({mediaUsecases});
 
         socketServer.on('connection', socket => {
+            this.attachSocketLogger(socket);
             serverController.addSocket(socket);
             kmsController.addRoutes(socket);
             mediaController.addRoutes(socket);
         });
+    }
+
+    attachSocketLogger(socket) {
+        const onevent = socket.onevent;
+        socket.onevent = function (packet) {
+            const args = packet.data || [];
+            onevent.call(this, packet);    // original call
+            packet.data = ["*"].concat(args);
+            onevent.call(this, packet);      // additional call to catch-all
+        };
+
+        socket.on('*', function (event, data) {
+            logger.info(`[${event}] ${JSON.stringify(data)}`);
+        });
+
     }
 }
 
