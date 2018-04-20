@@ -27,6 +27,10 @@ class TreeElementStore {
         return await TreeElementModel.findOne({webrtc});
     }
 
+    async findEmptyElementByCallId(callId) {
+        return await TreeElementModel.findOne({callId, webrtc: [], outgoingPlumbers: [], state: 'ready'});
+    }
+
     async addWebrtc(treeElement, webrtc) {
         return await treeElement.update({$addToSet: {webrtc}});
     }

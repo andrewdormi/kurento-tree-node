@@ -36,9 +36,12 @@ class TreeWatcher {
             await this.createDesiredInitialTreeElements(Math.abs(differenceWithDesiredElementsNumber));
         } else {
             const needToCreateNewTreeElement = await this.needToCreateNewTreeElement();
+            const needToRemoveEmptyElements = await this.needToRemoveEmptyElements();
 
             if (needToCreateNewTreeElement) {
                 await this.createNewTreeElement();
+            } else if (needToRemoveEmptyElements) {
+                await this.removeEmptyElement();
             }
         }
 
@@ -55,6 +58,21 @@ class TreeWatcher {
         const kmsIds = await this.getUsedKmsIds();
         const averageLoad = await kmsStore.getAverageLoadFromList(kmsIds);
         return averageLoad > config.treeWatcher.desiredNumberOfElementsPerKms;
+    }
+
+    async needToRemoveEmptyElements() {
+        const {treeElementStore} = this.storeCollection;
+        const emptyElement = await treeElementStore.findEmptyElementByCallId(this.tree.callId);
+        const treeElements = await treeElementStore.findByCallId(this.tree.callId);
+
+        return emptyElement && treeElements.length > config.treeWatcher.desiredTreeElementsCount;
+    }
+
+    async removeEmptyElement() {
+        const {treeElementStore} = this.storeCollection;
+        const emptyElement = await treeElementStore.findEmptyElementByCallId(this.tree.callId);
+
+        // TODO release empty element and its plumber
     }
 
     async createDesiredInitialTreeElements(number) {
