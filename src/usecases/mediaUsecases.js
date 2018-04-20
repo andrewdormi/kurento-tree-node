@@ -19,13 +19,11 @@ class MediaUsecases {
         const callId = uuidv4();
         const kms = await kmsStore.getLessLoadKms();
 
-        const publishElement = new KurentoElement({
+        const publishElement = this.createKurentoElement({
             kms,
             callId,
             streamType: 'publish',
-            elementType: 'WebRtcEndpoint',
-            storeCollection: this.storeCollection,
-            kurentoClientCollection: this.kurentoClientCollection
+            elementType: 'WebRtcEndpoint'
         });
         await publishElement.save();
 
@@ -65,21 +63,10 @@ class MediaUsecases {
         const treeElement = await treeElementStore.findByCallIdAndKms(callId, kms);
         const incomingPlumber = await plumberStore.findById(treeElement.incomingPlumber);
 
-        const publishElement = new KurentoElement({
-            kms,
-            storeCollection: this.storeCollection,
-            kurentoClientCollection: this.kurentoClientCollection
-        });
+        const publishElement = this.createKurentoElement({kms});
         await publishElement.initWithModelId(incomingPlumber.targetWebrtc);
 
-        const viewElement = new KurentoElement({
-            kms,
-            callId,
-            streamType: 'view',
-            elementType: 'WebRtcEndpoint',
-            storeCollection: this.storeCollection,
-            kurentoClientCollection: this.kurentoClientCollection
-        });
+        const viewElement = this.createKurentoElement({kms, callId, streamType: 'view', elementType: 'WebRtcEndpoint'});
         await viewElement.save();
 
         this.handleIceCandidates(viewElement.element, callId, onIceCandidate);
@@ -94,10 +81,7 @@ class MediaUsecases {
     async remove(elementId) {
         const {treeStore, treeElementStore} = this.storeCollection;
 
-        const removingElement = new KurentoElement({
-            storeCollection: this.storeCollection,
-            kurentoClientCollection: this.kurentoClientCollection
-        });
+        const removingElement = this.createKurentoElement();
         await removingElement.initWithElementId(elementId);
         if (!removingElement.element) {
             throw {message: 'Cant find removing element', code: 404};
@@ -136,10 +120,7 @@ class MediaUsecases {
 
         const allWebrtcForCallId = await webrtcStore.findByCallId(callId);
         for (let i = 0; i < allWebrtcForCallId.length; i++) {
-            const webrtcElement = new KurentoElement({
-                storeCollection: this.storeCollection,
-                kurentoClientCollection: this.kurentoClientCollection
-            });
+            const webrtcElement = this.createKurentoElement();
             await webrtcElement.initWithModelId(allWebrtcForCallId[i]._id);
 
             await webrtcElement.remove();
@@ -152,10 +133,7 @@ class MediaUsecases {
     }
 
     async addCandidate(elementId, candidate) {
-        const webrtc = new KurentoElement({
-            storeCollection: this.storeCollection,
-            kurentoClientCollection: this.kurentoClientCollection
-        });
+        const webrtc = this.createKurentoElement();
         await webrtc.initWithElementId(elementId);
 
         if (!webrtc.element) {
@@ -186,6 +164,14 @@ class MediaUsecases {
         const treeElements = await treeElementStore.findReadyByIds(tree.elements);
         const elementsKmsIds = treeElements.reduce((acc, cur) => [...acc, cur.kms], []);
         return await kmsStore.getLessLoadedFromList(elementsKmsIds);
+    }
+
+    createKurentoElement(args = {}) {
+        return new KurentoElement({
+            ...args,
+            storeCollection: this.storeCollection,
+            kurentoClientCollection: this.kurentoClientCollection
+        });
     }
 }
 
