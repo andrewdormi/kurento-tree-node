@@ -51,6 +51,15 @@ class KmsStore {
         return await this.queryLessLoadedKms({_id: {$nin: ids}, status: 'ready'});
     }
 
+    async getAverageLoadFromList(ids) {
+        if (!ids.length) {
+            return 0;
+        }
+        const kmss = await KmsModel.find({_id: {$in: ids}});
+        const fullLoad = kmss.reduce((acc, cur) => acc + cur.webrtcCount, 0);
+        return fullLoad / ids.length;
+    }
+
     async getLessLoadKms() {
         return await this.queryLessLoadedKms({status: 'ready'});
     }

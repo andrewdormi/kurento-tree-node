@@ -16,7 +16,7 @@ class TreeWatcher {
     }
 
     async stop() {
-        return new Promise(resolve=> {
+        return new Promise(resolve => {
             clearTimeout(this.watcherTimeout);
             this.stoppingCallback = resolve;
             this.state = treeWatcherStates.stopped;
@@ -31,11 +31,15 @@ class TreeWatcher {
         const {treeStore} = this.storeCollection;
         const tree = await treeStore.findById(this.tree._id);
 
-        const differenceWithDesiredElementsNumber = tree.elements.length - config.treeWatcher.desiredInitialTreeElements;
+        const differenceWithDesiredElementsNumber = tree.elements.length - config.treeWatcher.desiredTreeElementsCount;
         if (differenceWithDesiredElementsNumber < 0) {
             await this.createDesiredInitialTreeElements(Math.abs(differenceWithDesiredElementsNumber));
         } else {
+            const needToCreateNewTreeElement = await this.needToCreateNewTreeElement();
 
+            if (needToCreateNewTreeElement) {
+                await this.createNewTreeElement();
+            }
         }
 
         if (this.state !== treeWatcherStates.stopped) {
@@ -46,15 +50,26 @@ class TreeWatcher {
         this.isTickProcessing = false;
     }
 
+    async needToCreateNewTreeElement() {
+        const {kmsStore} = this.storeCollection;
+        const kmsIds = await this.getUsedKmsIds();
+        const averageLoad = await kmsStore.getAverageLoadFromList(kmsIds);
+        return averageLoad > config.treeWatcher.desiredNumberOfElementsPerKms;
+    }
+
     async createDesiredInitialTreeElements(number) {
         for (let i = 0; i < number; i++) {
-            const lessLoadedWithoutStream = await this.getLessLoadedWithoutStream();
-            if (!lessLoadedWithoutStream) {
-                return;
-            }
-
-            await this.createNewTreeElementWithStream(lessLoadedWithoutStream);
+            await this.createNewTreeElement();
         }
+    }
+
+    async createNewTreeElement() {
+        const lessLoadedWithoutStream = await this.getLessLoadedWithoutStream();
+        if (!lessLoadedWithoutStream) {
+            return;
+        }
+
+        await this.createNewTreeElementWithStream(lessLoadedWithoutStream);
     }
 
     async createNewTreeElementWithStream(lessLoadedWithoutStream) {
@@ -159,10 +174,15 @@ class TreeWatcher {
     }
 
     async getLessLoadedWithoutStream() {
-        const {kmsStore, treeElementStore} = this.storeCollection;
+        const {kmsStore} = this.storeCollection;
+        const usedKmsIds = await this.getUsedKmsIds();
+        return await kmsStore.getLessLoadedExceptList(usedKmsIds);
+    }
+
+    async getUsedKmsIds() {
+        const {treeElementStore} = this.storeCollection;
         const treeElements = await treeElementStore.findByCallId(this.tree.callId);
-        const elementsKmsIds = treeElements.reduce((acc, cur) => [...acc, cur.kms], []);
-        return await kmsStore.getLessLoadedExceptList(elementsKmsIds);
+        return treeElements.reduce((acc, cur) => [...acc, cur.kms], []);
     }
 }
 
