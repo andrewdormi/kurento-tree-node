@@ -27,6 +27,10 @@ class KmsStore {
         await kms.update({$addToSet: {webrtc}, $inc: {webrtcCount: 1}});
     }
 
+    async removeWebrtc(kms, webrtc) {
+        await kms.update({$pull: {webrtc}, $inc: {webrtcCount: -1}});
+    }
+
     async findWebrtcKms(webrtc) {
         return await KmsModel.findOne({webrtc});
     }

@@ -7,6 +7,7 @@ class MediaController {
         socket.on('media:publish', this.publish.bind(this, socket));
         socket.on('media:view', this.view.bind(this, socket));
         socket.on('media:candidate:add', this.addCandidate.bind(this, socket));
+        socket.on('media:remove', this.removeMedia(this, socket));
     }
 
     async publish(socket, data, cb) {
@@ -57,6 +58,19 @@ class MediaController {
 
             await this.mediaUsecases.addCandidate(elementId, candidate);
             if (cb) cb();
+        } catch (err) {
+            if (cb) cb(err);
+        }
+    }
+
+    async removeMedia(socket, data, cb) {
+        try {
+            const {elementId} = data;
+            if (!elementId) {
+                throw {message: 'Missing elementId', code: 400};
+            }
+
+            await this.mediaUsecases.remove(elementId);
         } catch (err) {
             if (cb) cb(err);
         }

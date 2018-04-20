@@ -23,8 +23,16 @@ class TreeElementStore {
         return await TreeElementModel.find({callId});
     }
 
+    async findWithWebrtc(webrtc) {
+        return await TreeElementModel.findOne({webrtc});
+    }
+
     async addWebrtc(treeElement, webrtc) {
         return await treeElement.update({$addToSet: {webrtc}});
+    }
+
+    async removeWebrtc(treeElement, webrtc) {
+        return await treeElement.update({$pull: {webrtc}});
     }
 
     async setIncomingPlumber(treeElement, incomingPlumber) {

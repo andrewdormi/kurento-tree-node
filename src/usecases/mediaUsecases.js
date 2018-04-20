@@ -59,7 +59,6 @@ class MediaUsecases {
 
         const kms = await this.getLessLoadKmsFromTree(tree);
 
-
         const treeElement = await treeElementStore.findByCallIdAndKms(callId, kms);
         const incomingPlumber = await plumberStore.findById(treeElement.incomingPlumber);
 
@@ -83,6 +82,31 @@ class MediaUsecases {
 
         await treeElementStore.addWebrtc(treeElement, viewElement.model);
         return {callId, answer, elementId: viewElement.element.id};
+    }
+
+    async remove(elementId) {
+        const {treeStore, treeElementStore} = this.storeCollection;
+
+        const removingElement = new KurentoElement({});
+        await removingElement.initWithElementId(elementId);
+        if (!removingElement.element) {
+            throw {message: 'Cant find removing element', code: 404};
+        }
+
+        const tree = await treeStore.findByCallId(removingElement.callId);
+        if (!tree) {
+            throw {message: 'Cant find chat with call id', code: 404};
+        }
+
+        if (removingElement.streamType === 'view') {
+            const treeElement = await treeElementStore.findWithWebrtc(removingElement.model);
+            if (!treeElement) {
+                throw {message: 'Cant find removing element in tree', code: 404};
+            }
+
+            await treeElementStore.removeWebrtc(treeElement, removingElement.model);
+            await removingElement.remove();
+        }
     }
 
     async addCandidate(elementId, candidate) {

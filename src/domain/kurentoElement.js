@@ -86,6 +86,17 @@ class KurentoElement {
         this.elementType = 'WebRtcEndpoint';
         this.callId = webrtcModel.callId;
     }
+
+    async remove() {
+        const {kmsStore} = this.storeCollection;
+
+        const client = await this.kurentoClientCollection.getOrCreateClientWithConnection(this.kms.url);
+        const {element: webrtc} = await client.retrive(this.model.elementId);
+
+        await kmsStore.removeWebrtc(this.kms, this.model);
+        await this.model.remove();
+        await webrtc.release();
+    }
 }
 
 module.exports = KurentoElement;
