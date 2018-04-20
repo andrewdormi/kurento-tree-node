@@ -20,7 +20,8 @@ class TreeWatcher {
     }
 
     async tick() {
-        const tree = await this.treeStore.findById(this.tree._id);
+        const {treeStore} = this.storeCollection;
+        const tree = await treeStore.findById(this.tree._id);
 
         const differenceWithDesiredElementsNumber = tree.elements.length - config.treeWatcher.desiredInitialTreeElements;
         if (differenceWithDesiredElementsNumber < 0) {
@@ -46,35 +47,38 @@ class TreeWatcher {
     }
 
     async createNewTreeElementWithStream(lessLoadedWithoutStream) {
+        const {treeStore, treeElementStore} = this.storeCollection;
         logger.info(`Creating tree element for call id ${this.tree.callId}`);
-        const treeElement = await this.treeElementStore.create({
+        const treeElement = await treeElementStore.create({
             kms: lessLoadedWithoutStream,
             callId: this.tree.callId,
             state: 'initial'
         });
-        this.tree = await this.treeStore.addTreeElement(this.tree, treeElement);
+        this.tree = await treeStore.addTreeElement(this.tree, treeElement);
         const parentElementId = await this.tree.getParentElementId(treeElement);
-        const parentElement = await this.treeElementStore.findReadyById(parentElementId);
+        const parentElement = await treeElementStore.findReadyById(parentElementId);
 
         await this.connectTreeElementsWithPlumber(parentElement, treeElement);
 
-        await this.treeElementStore.setState(treeElement, 'ready');
+        await treeElementStore.setState(treeElement, 'ready');
     }
 
     async connectTreeElementsWithPlumber(parentElement, childElement) {
+        const {treeElementStore, plumberStore} = this.storeCollection;
+
         const {element: sourceWebrtc, mongoElement: mongoSourceWebrtc} = await this.createSourceWebrtc(parentElement);
         const {element: targetWebrtc, mongoElement: mongoTargetWebrtc} = await this.createTargetWebrtc(childElement);
 
         await this.connectWebrtc(sourceWebrtc, targetWebrtc);
 
-        const connectingPlumber = await this.plumberStore.create({
+        const connectingPlumber = await plumberStore.create({
             callId: parentElement.callId,
             sourceWebrtc: mongoSourceWebrtc,
             targetWebrtc: mongoTargetWebrtc
         });
 
-        await this.treeElementStore.addOutgoingPlumber(parentElement, connectingPlumber);
-        await this.treeElementStore.setIncomingPlumber(childElement, connectingPlumber);
+        await treeElementStore.addOutgoingPlumber(parentElement, connectingPlumber);
+        await treeElementStore.setIncomingPlumber(childElement, connectingPlumber);
     }
 
     async connectWebrtc(sourceWebrtc, targetWebrtc) {
@@ -98,22 +102,22 @@ class TreeWatcher {
     }
 
     async createSourceWebrtc(treeElement) {
-        const kms = await this.kmsStore.findById(treeElement.kms);
+        const {kmsStore, plumberStore, webrtcStore} = this.storeCollection;
+        const kms = await kmsStore.findById(treeElement.kms);
 
-        const sourcePlumber = await this.plumberStore.findById(treeElement.incomingPlumber);
+        const sourcePlumber = await plumberStore.findById(treeElement.incomingPlumber);
         const {kmsClient, pipeline} = await this.getTreeElementKmsAndPipeline(treeElement);
 
-        const plumberTargetWebrtc = await this.webrtcStore.findById(sourcePlumber.targetWebrtc);
-        const webrtcWrapped = await kmsClient.retrive(plumberTargetWebrtc.elementId);
-        const webrtc = webrtcWrapped.get();
+        const plumberTargetWebrtc = await webrtcStore.findById(sourcePlumber.targetWebrtc);
+        const {element: webrtc} = await kmsClient.retrive(plumberTargetWebrtc.elementId);
 
         const {element: sourceElement} = await kmsClient.createElement('WebRtcEndpoint', pipeline);
-        const sourceWebrtc = await this.webrtcStore.create({
+        const sourceWebrtc = await webrtcStore.create({
             elementId: sourceElement.id,
             callId: this.tree.callId,
             streamType: 'restreaming'
         });
-        await this.kmsStore.addWebrtc(kms, sourceWebrtc);
+        await kmsStore.addWebrtc(kms, sourceWebrtc);
 
         webrtc.connect(sourceElement);
 
@@ -121,30 +125,33 @@ class TreeWatcher {
     }
 
     async createTargetWebrtc(treeElement) {
-        const kms = await this.kmsStore.findById(treeElement.kms);
+        const {kmsStore, webrtcStore} = this.storeCollection;
+        const kms = await kmsStore.findById(treeElement.kms);
 
         const {kmsClient, pipeline} = await this.getTreeElementKmsAndPipeline(treeElement);
         const {element} = await kmsClient.createElement('WebRtcEndpoint', pipeline);
-        const webrtc = await this.webrtcStore.create({
+        const webrtc = await webrtcStore.create({
             elementId: element.id,
             callId: this.tree.callId,
             streamType: 'publish'
         });
-        await this.kmsStore.addWebrtc(kms, webrtc);
+        await kmsStore.addWebrtc(kms, webrtc);
         return {element, mongoElement: webrtc}
     }
 
     async getTreeElementKmsAndPipeline(treeElement) {
-        const kms = await this.kmsStore.findById(treeElement.kms);
+        const {kmsStore} = this.storeCollection;
+        const kms = await kmsStore.findById(treeElement.kms);
         const kmsClient = await this.kurentoClientCollection.getOrCreateClientWithConnection(kms.url);
-        const pipelineWrapped = await kmsClient.retrive(kms.pipeline.elementId);
-        return {kmsClient, pipeline: pipelineWrapped.get()};
+        const {element: pipeline} = await kmsClient.retrive(kms.pipeline.elementId);
+        return {kmsClient, pipeline};
     }
 
     async getLessLoadedWithoutStream() {
-        const treeElements = await this.treeElementStore.findByCallId(this.tree.callId);
+        const {kmsStore, treeElementStore} = this.storeCollection;
+        const treeElements = await treeElementStore.findByCallId(this.tree.callId);
         const elementsKmsIds = treeElements.reduce((acc, cur) => [...acc, cur.kms], []);
-        return await this.kmsStore.getLessLoadedExceptList(elementsKmsIds);
+        return await kmsStore.getLessLoadedExceptList(elementsKmsIds);
     }
 }
 

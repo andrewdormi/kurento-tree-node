@@ -7,7 +7,7 @@ class MediaController {
         socket.on('media:publish', this.publish.bind(this, socket));
         socket.on('media:view', this.view.bind(this, socket));
         socket.on('media:candidate:add', this.addCandidate.bind(this, socket));
-        socket.on('media:remove', this.removeMedia(this, socket));
+        socket.on('media:remove', this.removeMedia.bind(this, socket));
     }
 
     async publish(socket, data, cb) {

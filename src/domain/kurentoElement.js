@@ -48,7 +48,7 @@ class KurentoElement {
         this.element = webrtc;
         this.model = webrtcModel;
 
-        await kmsStore.addWebrtc(this.kms, webrtc);
+        await kmsStore.addWebrtc(this.kms, webrtcModel);
     }
 
     async initWithModelId(id) {

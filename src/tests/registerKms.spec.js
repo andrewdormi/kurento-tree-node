@@ -1,7 +1,7 @@
 const {registerDefaultKms, openTestPage} = require('./common');
 
 const mock = {};
-describe('registerKms', () => {
+describe('kms:register', () => {
     beforeEach(async (done) => {
         const {browser, page} = await openTestPage();
         mock.browser = browser;

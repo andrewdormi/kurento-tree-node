@@ -62,7 +62,11 @@ class MediaUsecases {
         const treeElement = await treeElementStore.findByCallIdAndKms(callId, kms);
         const incomingPlumber = await plumberStore.findById(treeElement.incomingPlumber);
 
-        const publishElement = new KurentoElement({kms});
+        const publishElement = new KurentoElement({
+            kms,
+            storeCollection: this.storeCollection,
+            kurentoClientCollection: this.kurentoClientCollection
+        });
         await publishElement.initWithModelId(incomingPlumber.targetWebrtc);
 
         const viewElement = new KurentoElement({
@@ -87,7 +91,10 @@ class MediaUsecases {
     async remove(elementId) {
         const {treeStore, treeElementStore} = this.storeCollection;
 
-        const removingElement = new KurentoElement({});
+        const removingElement = new KurentoElement({
+            storeCollection: this.storeCollection,
+            kurentoClientCollection: this.kurentoClientCollection
+        });
         await removingElement.initWithElementId(elementId);
         if (!removingElement.element) {
             throw {message: 'Cant find removing element', code: 404};
@@ -110,7 +117,10 @@ class MediaUsecases {
     }
 
     async addCandidate(elementId, candidate) {
-        const webrtc = new KurentoElement();
+        const webrtc = new KurentoElement({
+            storeCollection: this.storeCollection,
+            kurentoClientCollection: this.kurentoClientCollection
+        });
         await webrtc.initWithElementId(elementId);
 
         if (!webrtc.element) {
