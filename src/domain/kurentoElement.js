@@ -90,12 +90,9 @@ class KurentoElement {
     async remove() {
         const {kmsStore} = this.storeCollection;
 
-        const client = await this.kurentoClientCollection.getOrCreateClientWithConnection(this.kms.url);
-        const {element: webrtc} = await client.retrive(this.model.elementId);
-
-        await kmsStore.removeWebrtc(this.kms, this.model);
+        await kmsStore.removeWebrtc(this.kms, this.model._id);
         await this.model.remove();
-        await webrtc.release();
+        await this.element.release();
     }
 }
 

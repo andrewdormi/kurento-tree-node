@@ -36,9 +36,16 @@ async function viewStream(page, callId) {
     }, callId);
 }
 
+async function removeElement(page, elementId) {
+    return await page.evaluate(async (elementId) => {
+        return await removeElement(elementId);
+    }, elementId);
+}
+
 module.exports = {
     registerDefaultKms,
     openTestPage,
     publishStream,
-    viewStream
+    viewStream,
+    removeElement
 };

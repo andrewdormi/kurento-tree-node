@@ -111,7 +111,7 @@ class MediaUsecases {
                 throw {message: 'Cant find removing element in tree', code: 404};
             }
 
-            await treeElementStore.removeWebrtc(treeElement, removingElement.model);
+            await treeElementStore.removeWebrtc(treeElement, removingElement.model._id);
             await removingElement.remove();
         }
     }

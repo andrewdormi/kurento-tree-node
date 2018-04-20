@@ -1,7 +1,7 @@
-const {registerDefaultKms, openTestPage, publishStream, viewStream} = require('./common');
+const {registerDefaultKms, openTestPage, publishStream, viewStream, removeElement} = require('./common');
 
 const mock = {};
-describe('media:view', () => {
+describe('media:remove', () => {
     beforeEach(async (done) => {
         const {browser, page} = await openTestPage();
         mock.browser = browser;
@@ -16,9 +16,10 @@ describe('media:view', () => {
         done();
     });
 
-    it('Can view published stream', async (done) => {
+    it('Can remove view element', async (done) => {
         const {callId} = await publishStream(mock.page);
-        await viewStream(mock.page, callId);
+        const {elementId} = await viewStream(mock.page, callId);
+        await removeElement(mock.page, elementId);
         done();
     });
 });

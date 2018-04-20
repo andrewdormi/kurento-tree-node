@@ -88,7 +88,7 @@ testpage
                     const state = connection.pc.iceConnectionState;
                     console.log(`Ice changed: ${state}`);
                     if (state === 'completed') {
-                        resolve(connection.callId);
+                        resolve({callId: connection.callId, elementId: connection.elementId});
                     }
                 };
 
@@ -147,10 +147,14 @@ testpage
                 const state = connection.pc.iceConnectionState;
                 console.log(`Ice changed: ${state}`);
                 if (state === 'completed') {
-                    resolve(connection.callId);
+                    resolve({callId: connection.callId, elementId: connection.elementId});
                 }
             };
         });
+    }
+
+    function removeElement(elementId) {
+        return emitPromise('media:remove', {elementId});
     }
 </script>
 </body>

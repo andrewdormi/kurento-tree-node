@@ -71,6 +71,7 @@ class MediaController {
             }
 
             await this.mediaUsecases.remove(elementId);
+            if (cb) cb();
         } catch (err) {
             if (cb) cb(err);
         }

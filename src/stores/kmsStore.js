@@ -11,6 +11,10 @@ class KmsStore {
         return await KmsModel.findOne({_id: id}).populate('pipeline');
     }
 
+    async findByUrl(url) {
+        return await KmsModel.findOne({url});
+    }
+
     async setPipeline(kms, pipeline) {
         await kms.update({$set: {pipeline}});
     }

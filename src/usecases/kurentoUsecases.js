@@ -8,6 +8,10 @@ class KurentoUseCases {
 
     async registerKms({url}) {
         const {kmsStore} = this.storeCollection;
+        const existed = await kmsStore.findByUrl(url);
+        if (existed) {
+            throw {message: 'Kms with this url is already registered', code: 400};
+        }
         const kms = await kmsStore.create({url, status: 'initiating'});
 
         const pipeline = new KurentoElement({
