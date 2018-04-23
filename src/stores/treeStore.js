@@ -16,7 +16,27 @@ class TreeStore {
     }
 
     async addTreeElement(tree, treeElement) {
-        return await TreeModel.findOneAndUpdate({_id: tree._id}, {$addToSet: {elements: treeElement}}, {new: true});
+        const updatedTree = await this.findById(tree._id);
+        const newElements = updatedTree.elements;
+        const firstNullIndex = newElements.findIndex(e => !e);
+        if (firstNullIndex !== -1) {
+            newElements[firstNullIndex] = treeElement._id;
+        } else {
+            newElements.push(treeElement._id);
+        }
+
+        return await TreeModel.findOneAndUpdate({_id: tree._id}, {$set: {elements: newElements}}, {new: true});
+    }
+
+    async removeTreeElement(tree, treeElement) {
+        const updatedTree = await this.findById(tree._id);
+        const newElements = updatedTree.elements;
+        const oldElementIndex = newElements.findIndex(e => e.equals(treeElement._id));
+        if (oldElementIndex !== -1) {
+            newElements[oldElementIndex] = null;
+        }
+
+        return await TreeModel.findOneAndUpdate({_id: tree._id}, {$set: {elements: newElements}}, {new: true});
     }
 
     async findReadyTreeByCallIdAndLockForDeleting(callId) {

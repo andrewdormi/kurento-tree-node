@@ -31,6 +31,10 @@ class TreeElementStore {
         return await TreeElementModel.findOne({callId, webrtc: [], outgoingPlumbers: [], state: 'ready'});
     }
 
+    async countEmptyElementByCallId(callId) {
+        return await TreeElementModel.count({callId, webrtc: [], outgoingPlumbers: [], state: 'ready'});
+    }
+
     async addWebrtc(treeElement, webrtc) {
         return await treeElement.update({$addToSet: {webrtc}});
     }
@@ -47,12 +51,20 @@ class TreeElementStore {
         return await treeElement.update({$addToSet: {outgoingPlumbers: outgoingPlumber}});
     }
 
+    async removeOutgoingPlumber(treeElement, outgoingPlumber) {
+        return await treeElement.update({$pull: {outgoingPlumbers: outgoingPlumber._id}});
+    }
+
     async setState(treeElement, state) {
         return await treeElement.update({$set: {state}});
     }
 
     async removeByCallId(callId) {
         await TreeElementModel.remove({callId});
+    }
+
+    async removeById(id) {
+        await TreeElementModel.remove({_id: id});
     }
 
     async clear() {

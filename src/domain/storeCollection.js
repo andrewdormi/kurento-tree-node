@@ -6,6 +6,7 @@ class StoreCollection {
         this.treeElementStore = stores.treeElementStore;
         this.treeStore = stores.treeStore;
         this.webrtcStore = stores.webrtcStore;
+        this.treeWatchersStore = stores.treeWatchersStore;
     }
 }
 

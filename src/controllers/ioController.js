@@ -11,10 +11,13 @@ const WebrtcStore = require('../stores/webrtcStore');
 const TreeStore = require('../stores/treeStore');
 const TreeElementStore = require('../stores/treeElementStore');
 const PlumberStore = require('../stores/plumberStore');
+const TreeWatchersStore = require('../stores/treeWatchersStore');
 
 const ServerUsecases = require('../usecases/serverUsecases');
 const KurentoUsecases = require('../usecases/kurentoUsecases');
 const MediaUsecases = require('../usecases/mediaUsecases');
+
+const TreeWatcherEstablisher = require('../domain/treeWatcherEsteblisher');
 
 const KurentoClientCollection = require('../domain/kurentoClientCollection');
 
@@ -31,12 +34,16 @@ class IOController {
             plumberStore: new PlumberStore(),
             webrtcStore: new WebrtcStore(),
             treeStore: new TreeStore(),
-            treeElementStore: new TreeElementStore()
+            treeElementStore: new TreeElementStore(),
+            treeWatchersStore: new TreeWatchersStore()
         });
+
+        const treeWatcherEstablisher = new TreeWatcherEstablisher(storeCollection, kurentoClientCollection);
+        treeWatcherEstablisher.start();
 
         const serverUsecases = new ServerUsecases(storeCollection, kurentoClientCollection);
         const kurentoUsecases = new KurentoUsecases(storeCollection, kurentoClientCollection);
-        const mediaUsecases = new MediaUsecases(storeCollection, kurentoClientCollection, amqpController);
+        const mediaUsecases = new MediaUsecases(storeCollection, kurentoClientCollection, amqpController, treeWatcherEstablisher);
 
         const serverController = new ServerController({serverUsecases});
         const kmsController = new KmsController({kurentoUsecases});

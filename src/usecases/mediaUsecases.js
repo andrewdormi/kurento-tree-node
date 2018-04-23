@@ -1,14 +1,13 @@
 const uuidv4 = require('uuid/v4');
 const kurento = require('kurento-client');
 const KurentoElement = require('../domain/kurentoElement');
-const TreeWatcher = require('../domain/treeWatcher');
 
 class MediaUsecases {
-    constructor(storeCollection, kurentoClientCollection, amqpController) {
+    constructor(storeCollection, kurentoClientCollection, amqpController, treeWatcherEstablisher) {
         this.storeCollection = storeCollection;
         this.kurentoClientCollection = kurentoClientCollection;
         this.amqpController = amqpController;
-        this.treeWatchers = {};
+        this.treeWatcherEstablisher = treeWatcherEstablisher;
 
         this.amqpController.on('media:remove', this.removePublishEndpoint.bind(this));
     }
@@ -36,19 +35,9 @@ class MediaUsecases {
 
         const tree = await treeStore.create({elements: [treeElement], callId});
 
-        await this.registerTreeWatcher(tree, callId);
+        await this.treeWatcherEstablisher.registerTreeWatcher(tree, callId);
 
         return {callId, answer, elementId: publishElement.element.id};
-    }
-
-    async registerTreeWatcher(tree, callId) {
-        const treeWatcher = new TreeWatcher({
-            tree,
-            storeCollection: this.storeCollection,
-            kurentoClientCollection: this.kurentoClientCollection
-        });
-        await treeWatcher.start();
-        this.treeWatchers[callId] = treeWatcher;
     }
 
     async view(offer, callId, onIceCandidate) {
@@ -110,13 +99,13 @@ class MediaUsecases {
 
     async removePublishEndpoint({elementId, callId}) {
         const {treeStore, webrtcStore, treeElementStore, plumberStore} = this.storeCollection;
-        if (!this.treeWatchers[callId]) {
+        if (!this.treeWatcherEstablisher.hasWatcherWithCallId(callId)) {
             return;
         }
 
         const tree = await treeStore.findReadyTreeByCallIdAndLockForDeleting(callId);
-        await this.treeWatchers[callId].stop();
-        delete this.treeWatchers[callId];
+        await this.treeWatcherEstablisher.stopWatcherForCallId(callId);
+        await this.treeWatcherEstablisher.removeWatcher(callId);
 
         const allWebrtcForCallId = await webrtcStore.findByCallId(callId);
         for (let i = 0; i < allWebrtcForCallId.length; i++) {
@@ -175,11 +164,7 @@ class MediaUsecases {
     }
 
     async clearTreeWatchers() {
-        const callIds = Object.keys(this.treeWatchers);
-        for (let i = 0; i < callIds.length; i++) {
-            await this.treeWatchers[callIds[i]].stop();
-            delete this.treeWatchers[callIds[i]];
-        }
+        await this.treeWatcherEstablisher.clearTreeWatchers();
     }
 }
 

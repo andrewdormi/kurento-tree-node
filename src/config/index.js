@@ -4,7 +4,7 @@ module.exports = {
     rabbitMQUrl: process.env.RABBIT_MQ_URL || 'amqp://localhost',
     treeWatcher: {
         interval: 1000,
-        desiredTreeElementsCount: 3,
-        desiredNumberOfElementsPerKms: 10
+        desiredTreeElementsCount: 2,
+        desiredNumberOfElementsPerKms: 4
     }
 };

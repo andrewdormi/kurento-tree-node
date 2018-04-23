@@ -55,6 +55,9 @@ class KurentoElement {
         const {kmsStore, webrtcStore} = this.storeCollection;
 
         const webrtcModel = await webrtcStore.findById(id);
+        if (!webrtcModel) {
+            return;
+        }
         if (!this.kms) {
             this.kms = await kmsStore.findWebrtcKms(webrtcModel);
         }
@@ -89,6 +92,10 @@ class KurentoElement {
 
     async remove() {
         const {kmsStore} = this.storeCollection;
+
+        if (!this.model || !this.element) {
+            return;
+        }
 
         await kmsStore.removeWebrtc(this.kms, this.model._id);
         await this.model.remove();

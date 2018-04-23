@@ -1,4 +1,5 @@
 const kurento = require('kurento-client');
+const KurentoElement = require('./kurentoElement');
 const treeWatcherStates = {working: 'working', stopped: 'stopped'};
 
 // Watcher for creating/balancing current broadcasting tree
@@ -27,22 +28,29 @@ class TreeWatcher {
     }
 
     async tick() {
-        this.isTickProcessing = true;
-        const {treeStore} = this.storeCollection;
-        const tree = await treeStore.findById(this.tree._id);
-
-        const differenceWithDesiredElementsNumber = tree.elements.length - config.treeWatcher.desiredTreeElementsCount;
-        if (differenceWithDesiredElementsNumber < 0) {
-            await this.createDesiredInitialTreeElements(Math.abs(differenceWithDesiredElementsNumber));
-        } else {
-            const needToCreateNewTreeElement = await this.needToCreateNewTreeElement();
-            const needToRemoveEmptyElements = await this.needToRemoveEmptyElements();
-
-            if (needToCreateNewTreeElement) {
-                await this.createNewTreeElement();
-            } else if (needToRemoveEmptyElements) {
-                await this.removeEmptyElement();
+        try {
+            this.isTickProcessing = true;
+            const {treeStore} = this.storeCollection;
+            const tree = await treeStore.findById(this.tree._id);
+            if (!tree) {
+                return;
             }
+
+            const differenceWithDesiredElementsNumber = tree.elements.length - config.treeWatcher.desiredTreeElementsCount;
+            if (differenceWithDesiredElementsNumber < 0) {
+                await this.createDesiredInitialTreeElements(Math.abs(differenceWithDesiredElementsNumber));
+            } else {
+                const needToCreateNewTreeElement = await this.needToCreateNewTreeElement();
+                const needToRemoveEmptyElements = await this.needToRemoveEmptyElements();
+
+                if (needToCreateNewTreeElement) {
+                    await this.createNewTreeElement();
+                } else if (needToRemoveEmptyElements) {
+                    await this.removeEmptyElement();
+                }
+            }
+        } catch (err) {
+            console.log(err);
         }
 
         if (this.state !== treeWatcherStates.stopped) {
@@ -62,17 +70,36 @@ class TreeWatcher {
 
     async needToRemoveEmptyElements() {
         const {treeElementStore} = this.storeCollection;
-        const emptyElement = await treeElementStore.findEmptyElementByCallId(this.tree.callId);
+        const emptyElement = await treeElementStore.countEmptyElementByCallId(this.tree.callId);
         const treeElements = await treeElementStore.findByCallId(this.tree.callId);
 
-        return emptyElement && treeElements.length > config.treeWatcher.desiredTreeElementsCount;
+        return emptyElement > 1 && treeElements.length > config.treeWatcher.desiredTreeElementsCount;
     }
 
     async removeEmptyElement() {
         const {treeElementStore} = this.storeCollection;
         const emptyElement = await treeElementStore.findEmptyElementByCallId(this.tree.callId);
 
-        // TODO release empty element and its plumber
+        await this.removeTreeElement(emptyElement);
+    }
+
+    async removeTreeElement(element) {
+        const {treeStore, plumberStore, treeElementStore} = this.storeCollection;
+        const incomingPlumber = await plumberStore.findById(element.incomingPlumber);
+        const elementWebrtcIds = [...element.webrtc, incomingPlumber.sourceWebrtc, incomingPlumber.targetWebrtc];
+        for (let i = 0; i < elementWebrtcIds.length; i++) {
+            const currentElement = this.createKurentoElement({});
+            await currentElement.initWithModelId(elementWebrtcIds[i]);
+            await currentElement.remove();
+        }
+
+        const parentElementId = await this.tree.getParentElementId(element);
+        const parentElement = await treeElementStore.findReadyById(parentElementId);
+        await treeElementStore.removeOutgoingPlumber(parentElement, incomingPlumber);
+
+        this.tree = await treeStore.removeTreeElement(this.tree, element);
+        await plumberStore.removeById(incomingPlumber._id);
+        await treeElementStore.removeById(element._id);
     }
 
     async createDesiredInitialTreeElements(number) {
@@ -99,6 +126,7 @@ class TreeWatcher {
             state: 'initial'
         });
         this.tree = await treeStore.addTreeElement(this.tree, treeElement);
+
         const parentElementId = await this.tree.getParentElementId(treeElement);
         const parentElement = await treeElementStore.findReadyById(parentElementId);
 
@@ -201,6 +229,14 @@ class TreeWatcher {
         const {treeElementStore} = this.storeCollection;
         const treeElements = await treeElementStore.findByCallId(this.tree.callId);
         return treeElements.reduce((acc, cur) => [...acc, cur.kms], []);
+    }
+
+    createKurentoElement(args = {}) {
+        return new KurentoElement({
+            ...args,
+            storeCollection: this.storeCollection,
+            kurentoClientCollection: this.kurentoClientCollection
+        });
     }
 }
 
