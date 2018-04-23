@@ -49,16 +49,16 @@ class TreeWatcher {
                     await this.removeEmptyElement();
                 }
             }
-        } catch (err) {
-            console.log(err);
-        }
 
-        if (this.state !== treeWatcherStates.stopped) {
-            this.watcherTimeout = setTimeout(this.tick.bind(this), config.treeWatcher.interval);
-        } else {
-            this.stoppingCallback();
+            if (this.state !== treeWatcherStates.stopped) {
+                this.watcherTimeout = setTimeout(this.tick.bind(this), config.treeWatcher.interval);
+            } else {
+                this.stoppingCallback();
+            }
+            this.isTickProcessing = false;
+        } catch (err) {
+            console.error(err);
         }
-        this.isTickProcessing = false;
     }
 
     async needToCreateNewTreeElement() {

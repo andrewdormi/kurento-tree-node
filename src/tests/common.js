@@ -42,10 +42,17 @@ async function removeElement(page, elementId) {
     }, elementId);
 }
 
+function promiseTimeout(timeout) {
+    return new Promise(resolve => {
+        setTimeout(() => resolve(), timeout);
+    });
+}
+
 module.exports = {
     registerDefaultKms,
     openTestPage,
     publishStream,
     viewStream,
-    removeElement
+    removeElement,
+    promiseTimeout
 };
