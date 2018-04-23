@@ -11,6 +11,10 @@ class PipelineStore {
         return PipelineModel.find({});
     }
 
+    async remove(pipeline) {
+        return PipelineModel.remove({_id: pipeline._id});
+    }
+
     async clear() {
         await PipelineModel.remove({});
     }

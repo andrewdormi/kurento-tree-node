@@ -12,7 +12,7 @@ class KmsStore {
     }
 
     async findByUrl(url) {
-        return await KmsModel.findOne({url});
+        return await KmsModel.findOne({url}).populate('pipeline');
     }
 
     async setPipeline(kms, pipeline) {
@@ -70,6 +70,10 @@ class KmsStore {
             .sort({webrtcCount: 1})
             .limit(1);
         return lessLoaded[0];
+    }
+
+    async remove(kms) {
+        return KmsModel.remove({_id: kms._id});
     }
 }
 

@@ -43,6 +43,11 @@ testpage
         return Promise.all(promises);
     }
 
+    function deregisterKms(kmsUrls) {
+        const promises = kmsUrls.map(u => emitPromise('kms:deregister', {url: u}));
+        return Promise.all(promises);
+    }
+
     function publish() {
         let connection = {candidatesQueue: [], remoteCandidateQueue: []};
         return new Promise((resolve, reject) => {
